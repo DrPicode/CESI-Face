@@ -23,6 +23,9 @@ import sys
 import json
 import hashlib
 import textwrap
+import queue
+import threading
+import time
 
 
 class LoginWindow:
@@ -402,45 +405,74 @@ class FaceObjectRecognitionApp:
         return True
 
     def start_recognition(self):
-        """Fonction de reconnaissance en temps réel avec logging"""
+        """Version modifiée avec double threading"""
         try:
-            # Charger le modèle de reconnaissance faciale
-            model = load_model("face_recognition_model.h5", compile=False)
-            with open("label_map.pkl", 'rb') as f:
-                label_map = pickle.load(f)
+            # Queues pour la reconnaissance faciale
+            face_frame_queue = queue.Queue(maxsize=1)
+            face_result_queue = queue.Queue()
+
+            # Queues pour la détection d'objets
+            object_frame_queue = queue.Queue(maxsize=1)
+            object_result_queue = queue.Queue()
+
+            # Démarrage du thread de reconnaissance faciale
+            recognition_thread = FaceRecognitionThread(
+                frame_queue=face_frame_queue,
+                result_queue=face_result_queue,
+                face_model=self.face_model,
+                label_map=self.label_map
+            )
+            recognition_thread.start()
+
+            # Démarrage du thread de détection d'objets
+            object_thread = ObjectDetectionThread(
+                frame_queue=object_frame_queue,
+                result_queue=object_result_queue,
+                model_yolo=self.model_yolo,
+                objets_surveilles=self.OBJETS_SURVEILLES
+            )
+            object_thread.start()
 
             cap = cv2.VideoCapture(0)
             face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-            last_predictions = []
-            PREDICTION_MEMORY = 5
+            current_face_results = {}
+            current_object_detections = []
 
             while self.is_recognition_running:
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                # Détection d'objets
-                detections = self.detect_objects(frame)
+                # Envoyer la frame pour la détection d'objets
+                try:
+                    object_frame_queue.put(frame.copy(), block=False)
+                except queue.Full:
+                    pass
+
+                # Récupérer les résultats de détection d'objets
+                while not object_result_queue.empty():
+                    current_object_detections = object_result_queue.get()
+
+                # Afficher les objets détectés
                 objets_interdits = []
+                for detection in current_object_detections:
+                    objets_interdits.append(detection['objet'])
+                    x1, y1, x2, y2 = detection['coords']
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                    text = f"{detection['objet']} ({detection['confiance']:.2f})"
+                    cv2.putText(frame, text, (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-                for detection in detections:
-                    # Vérifier si l'objet est surveillé
-                    if detection['objet'] in self.OBJETS_SURVEILLES:
-                        objets_interdits.append(detection['objet'])
-                        # Extraire les coordonnées et dessiner un rectangle rouge
-                        x1, y1, x2, y2 = detection['coords']
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Rouge
-
-                        # Ajouter le texte de l'objet interdit en rouge
-                        text = f"{detection['objet']} ({detection['confiance']:.2f})"
-                        cv2.putText(frame, text, (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-                # Reconnaissance faciale
+                # Détection des visages
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
 
+                # Récupérer les résultats de reconnaissance faciale
+                while not face_result_queue.empty():
+                    current_face_results = face_result_queue.get()
+
+                # Traitement des visages détectés
                 for (x, y, w, h) in faces:
                     margin = 20
                     y1 = max(0, y - margin)
@@ -450,59 +482,37 @@ class FaceObjectRecognitionApp:
                     face_img = frame[y1:y2, x1:x2]
 
                     try:
-                        embedding = DeepFace.represent(face_img, model_name="ArcFace",
-                                                     enforce_detection=False)
+                        face_frame_queue.put(face_img, block=False)
+                    except queue.Full:
+                        pass
 
-                        if embedding:
-                            embedding_array = np.array([embedding[0]["embedding"]])
-                            prediction = model.predict(embedding_array, verbose=0)
-                            predicted_class = np.argmax(prediction)
-                            confidence = prediction[0][predicted_class]
+                    if current_face_results:
+                        predicted_name = current_face_results['name']
+                        confidence = current_face_results['confidence']
 
-                            # Système de lissage
-                            last_predictions.append((predicted_class, confidence))
-                            if len(last_predictions) > PREDICTION_MEMORY:
-                                last_predictions.pop(0)
+                        if predicted_name == "Inconnu":
+                            color = (0, 0, 255)
+                            text = predicted_name
+                        else:
+                            color = (0, int(255 * confidence), 0)
+                            adjusted_confidence = max(0, confidence - 0.10)
+                            text = f"{predicted_name} ({adjusted_confidence:.2f})"
+                            self.log_detection(predicted_name, objets_interdits)
 
-                            if len(last_predictions) >= 3:
-                                class_counts = {}
-                                for pred_class, conf in last_predictions:
-                                    if pred_class not in class_counts:
-                                        class_counts[pred_class] = []
-                                    class_counts[pred_class].append(conf)
-
-                                most_common_class = max(class_counts.items(),
-                                                      key=lambda x: (len(x[1]),
-                                                                   sum(x[1])/len(x[1])))[0]
-                                avg_confidence = np.mean(class_counts[most_common_class])
-
-                                predicted_class = most_common_class
-                                confidence = avg_confidence
-
-                            predicted_name = label_map[predicted_class]
-                            if confidence < 0.75:  # Seuil de confiance
-                                predicted_name = "Inconnu"
-                                color = (0, 0, 255)  # Rouge pour inconnu
-                                text = predicted_name
-                            else:
-                                predicted_name = label_map[predicted_class]
-                                color = (0, int(255 * confidence), 0)
-                                adjusted_confidence = max(0, confidence - 0.10)
-                                text = f"{predicted_name} ({adjusted_confidence:.2f})"
-                                self.log_detection(predicted_name, objets_interdits)
-
-                            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                            cv2.putText(frame, text, (x, y-10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-                    except Exception as e:
-                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                        cv2.putText(frame, text, (x, y - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
                 cv2.imshow('Système de reconnaissance', frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
+            # Nettoyage
+            recognition_thread.stop()
+            object_thread.stop()
+            recognition_thread.join()
+            object_thread.join()
             cap.release()
             cv2.destroyAllWindows()
 
@@ -670,10 +680,22 @@ class FaceObjectRecognitionApp:
                 messagebox.showerror("Erreur", "Le modèle facial n'a pas été entraîné!")
                 return
 
+            # Charger le modèle facial s'il n'est pas déjà chargé
+            if not hasattr(self, 'face_model'):
+                try:
+                    self.status_var.set("Chargement du modèle facial...")
+                    self.face_model = load_model("face_recognition_model.h5", compile=False)
+                    with open("label_map.pkl", 'rb') as f:
+                        self.label_map = pickle.load(f)
+                    self.status_var.set("Modèle facial chargé")
+                except Exception as e:
+                    messagebox.showerror("Erreur", f"Erreur lors du chargement du modèle facial: {str(e)}")
+                    return
+
             if self.model_yolo is None:
                 messagebox.showwarning("Attention",
-                                     "Le modèle YOLO n'est pas chargé. " +
-                                     "Seule la reconnaissance faciale sera active.")
+                                       "Le modèle YOLO n'est pas chargé. " +
+                                       "Seule la reconnaissance faciale sera active.")
 
             self.is_recognition_running = True
             self.status_var.set("Reconnaissance en cours...")
@@ -774,6 +796,210 @@ class FaceObjectRecognitionApp:
         self.root.destroy()  # Ferme la fenêtre actuelle
         login = LoginWindow()  # Réinstancie la fenêtre de connexion
         login.run()  # Lance la fenêtre de connexion
+
+
+# Nouvelle classe pour la détection d'objets
+class ObjectDetectionThread(threading.Thread):
+    def __init__(self, frame_queue, result_queue, model_yolo, objets_surveilles):
+        threading.Thread.__init__(self)
+        self.frame_queue = frame_queue
+        self.result_queue = result_queue
+        self.model_yolo = model_yolo
+        self.objets_surveilles = objets_surveilles
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                # Récupérer la frame la plus récente
+                frame = None
+                while not self.frame_queue.empty():
+                    frame = self.frame_queue.get_nowait()
+
+                if frame is None:
+                    time.sleep(0.01)
+                    continue
+
+                # Détection d'objets
+                old_stdout = sys.stdout
+                sys.stdout = open(os.devnull, 'w')
+                results = self.model_yolo(frame, verbose=False)
+                sys.stdout = old_stdout
+
+                detections = []
+                for r in results:
+                    boxes = r.boxes
+                    for box in boxes:
+                        cls_id = int(box.cls[0])
+                        for nom_objet, id_classe in self.objets_surveilles.items():
+                            if cls_id == id_classe:
+                                x1, y1, x2, y2 = box.xyxy[0]
+                                confidence = float(box.conf[0])
+                                if confidence > 0.4:
+                                    detections.append({
+                                        'objet': nom_objet,
+                                        'confiance': confidence,
+                                        'coords': (int(x1), int(y1), int(x2), int(y2))
+                                    })
+
+                # Envoyer les résultats
+                self.result_queue.put(detections)
+
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Erreur dans le thread de détection d'objets: {str(e)}")
+                continue
+
+    def stop(self):
+        self.running = False
+
+
+class FaceRecognitionThread(threading.Thread):
+    def __init__(self, frame_queue, result_queue, face_model, label_map):
+        threading.Thread.__init__(self)
+        self.frame_queue = frame_queue
+        self.result_queue = result_queue
+        self.face_model = face_model
+        self.label_map = label_map
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                # Récupérer la frame la plus récente, ignore les anciennes
+                face_img = None
+                while not self.frame_queue.empty():
+                    face_img = self.frame_queue.get_nowait()
+
+                if face_img is None:
+                    time.sleep(0.01)  # Petite pause si pas de frame
+                    continue
+
+                # Traitement de la reconnaissance faciale
+                embedding = DeepFace.represent(face_img, model_name="ArcFace",
+                                               enforce_detection=False)
+
+                if embedding:
+                    embedding_array = np.array([embedding[0]["embedding"]])
+                    prediction = self.face_model.predict(embedding_array, verbose=0)
+                    predicted_class = np.argmax(prediction)
+                    confidence = prediction[0][predicted_class]
+
+                    # Envoyer le résultat
+                    predicted_name = self.label_map[predicted_class] if confidence >= 0.75 else "Inconnu"
+                    self.result_queue.put({
+                        'name': predicted_name,
+                        'confidence': confidence
+                    })
+
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Erreur dans le thread de reconnaissance: {str(e)}")
+                continue
+
+    def stop(self):
+        self.running = False
+
+
+def start_recognition(self):
+    """Version modifiée de la fonction de reconnaissance en temps réel"""
+    try:
+        # Initialisation des queues pour la communication inter-thread
+        frame_queue = queue.Queue(maxsize=1)  # Limite à 1 pour ne garder que la frame la plus récente
+        result_queue = queue.Queue()
+
+        # Démarrage du thread de reconnaissance faciale
+        recognition_thread = FaceRecognitionThread(
+            frame_queue=frame_queue,
+            result_queue=result_queue,
+            face_model=self.face_model,
+            label_map=self.label_map
+        )
+        recognition_thread.start()
+
+        cap = cv2.VideoCapture(0)
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+        current_results = {}  # Pour stocker les résultats de reconnaissance les plus récents
+
+        while self.is_recognition_running:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Détection d'objets (peut aussi être déplacé dans un thread séparé si nécessaire)
+            detections = self.detect_objects(frame)
+            objets_interdits = []
+
+            for detection in detections:
+                if detection['objet'] in self.OBJETS_SURVEILLES:
+                    objets_interdits.append(detection['objet'])
+                    x1, y1, x2, y2 = detection['coords']
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                    text = f"{detection['objet']} ({detection['confiance']:.2f})"
+                    cv2.putText(frame, text, (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+            # Détection des visages
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+            # Récupérer les résultats de reconnaissance disponibles
+            while not result_queue.empty():
+                result = result_queue.get()
+                current_results = result  # Mise à jour des résultats actuels
+
+            # Traitement des visages détectés
+            for (x, y, w, h) in faces:
+                margin = 20
+                y1 = max(0, y - margin)
+                y2 = min(frame.shape[0], y + h + margin)
+                x1 = max(0, x - margin)
+                x2 = min(frame.shape[1], x + w + margin)
+                face_img = frame[y1:y2, x1:x2]
+
+                # Envoyer l'image du visage pour traitement
+                try:
+                    frame_queue.put(face_img, block=False)  # Non-bloquant
+                except queue.Full:
+                    pass  # Ignorer si la queue est pleine
+
+                # Affichage des résultats de reconnaissance
+                if current_results:
+                    predicted_name = current_results['name']
+                    confidence = current_results['confidence']
+
+                    if predicted_name == "Inconnu":
+                        color = (0, 0, 255)
+                        text = predicted_name
+                    else:
+                        color = (0, int(255 * confidence), 0)
+                        adjusted_confidence = max(0, confidence - 0.10)
+                        text = f"{predicted_name} ({adjusted_confidence:.2f})"
+                        self.log_detection(predicted_name, objets_interdits)
+
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                    cv2.putText(frame, text, (x, y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+            cv2.imshow('Système de reconnaissance', frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        # Nettoyage
+        recognition_thread.stop()
+        recognition_thread.join()
+        cap.release()
+        cv2.destroyAllWindows()
+
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur pendant la reconnaissance: {str(e)}")
+        self.status_var.set("Erreur pendant la reconnaissance")
+    finally:
+        self.is_recognition_running = False
 
 if __name__ == "__main__":
     login = LoginWindow()
