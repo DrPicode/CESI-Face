@@ -385,18 +385,35 @@ class FaceObjectRecognitionApp:
         return detections
 
     def log_detection(self, personne, objets_interdits):
-        """
-        Enregistre une détection dans le fichier CSV si ce n'est pas un doublon consécutif
-        """
         if personne == "Inconnu" or personne == self.last_logged_person:
             return False
 
         current_time = datetime.now()
         date = current_time.strftime('%d/%m/%Y')
         heure = current_time.strftime('%H:%M:%S')
-
         objets_str = "|".join(objets_interdits) if objets_interdits else "Aucun"
 
+        # Vérifier la dernière action de cette personne
+        last_action = None
+        try:
+            with open(self.csv_file, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f, delimiter=';')
+                next(reader)  # Skip header
+                for row in reversed(list(reader)):
+                    if row[2] == personne:  # Si on trouve la personne
+                        last_action = row[4]  # Mode (Entree/Sortie)
+                        break
+        except FileNotFoundError:
+            pass
+
+        # Vérifier la cohérence de l'action
+        if last_action is not None:
+            print("test")
+            if (self.action == "Entree" and last_action == "Entrée") or \
+                    (self.action == "Sortie" and last_action == "Sortie"):
+                return False
+
+        # Si on arrive ici, on peut logger l'action
         with open(self.csv_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f, delimiter=';')
             writer.writerow([date, heure, personne, objets_str, self.action, self.salle])
