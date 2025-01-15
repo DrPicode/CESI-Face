@@ -416,7 +416,6 @@ class FaceObjectRecognitionApp:
 
         # Vérifier la cohérence de l'action
         if last_action is not None:
-            print("test")
             if (self.action == "Entree" and last_action == "Entrée") or \
                     (self.action == "Sortie" and last_action == "Sortie"):
                 return False
@@ -532,7 +531,7 @@ class FaceObjectRecognitionApp:
                         cv2.putText(frame, text, (x, y - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-                cv2.imshow('Système de reconnaissance', frame)
+                cv2.imshow('Systeme de reconnaissance', frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
