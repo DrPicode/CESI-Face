@@ -152,7 +152,7 @@ class FaceObjectRecognitionApp:
         try:
             logging.getLogger("ultralytics").setLevel(logging.WARNING)
             self.model_yolo = YOLO("yolov8n-oiv7.pt", verbose=False)
-            self.status_var.set("Modèle YOLO chargé")
+            self.status_var.set("Modèles chargés")
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors du chargement de YOLO: {str(e)}")
             self.status_var.set("Erreur chargement YOLO")
@@ -487,7 +487,8 @@ class FaceObjectRecognitionApp:
                             else:
                                 predicted_name = label_map[predicted_class]
                                 color = (0, int(255 * confidence), 0)
-                                text = f"{predicted_name} ({confidence:.2f})"
+                                adjusted_confidence = max(0, confidence - 0.10)
+                                text = f"{predicted_name} ({adjusted_confidence:.2f})"
                                 self.log_detection(predicted_name, objets_interdits)
 
                             cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
@@ -551,6 +552,7 @@ class FaceObjectRecognitionApp:
 
     def analyze_image(self):
         """Analyse une image sélectionnée"""
+        self.status_var.set("Analyse de l'image...")
         # Ouvrir le sélecteur de fichier
         file_path = filedialog.askopenfilename(
             title="Sélectionner une image",
@@ -559,6 +561,7 @@ class FaceObjectRecognitionApp:
 
         if not file_path:
             return
+
 
         # Vérifier que les modèles sont chargés
         if not self.load_models() or not self.load_caption_models():
@@ -574,6 +577,7 @@ class FaceObjectRecognitionApp:
 
             # Détection d'objets
             detections = self.detect_objects(frame)
+            self.status_var.set("Analyse de l'image...")
             for detection in detections:
                 # Extraire les coordonnées et dessiner un rectangle rouge
                 x1, y1, x2, y2 = detection['coords']
@@ -616,7 +620,8 @@ class FaceObjectRecognitionApp:
                         else:
                             predicted_name = self.label_map[predicted_class]
                             color = (0, int(255 * confidence), 0)
-                            text = f"{predicted_name} ({confidence:.2f})"
+                            adjusted_confidence = max(0, confidence - 0.10)
+                            text = f"{predicted_name} ({adjusted_confidence:.2f})"
 
                         cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
                         cv2.putText(frame, text, (x, y-10),
@@ -645,6 +650,8 @@ class FaceObjectRecognitionApp:
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 1)
 
                 y_pos += 25
+
+            self.status_var.set("Analyse terminée.")
 
             # Afficher l'image analysée
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Reconvertir en BGR pour l'affichage

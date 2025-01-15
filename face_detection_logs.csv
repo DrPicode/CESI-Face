@@ -1,79 +1,57 @@
 Date;Heure;Personne;Objets_Interdits;Mode;Salle
 21/12/2024;14:58:13;Inconnu;;Entree;109
 21/12/2024;16:24:15;Inconnu;;Sortie;109
+22/12/2024;17:42:15;Inconnu;;Entree;109
 21/12/2024;14:58:18;Mathis Wauters;;Entree;103
 21/12/2024;15:43:22;Mathis Wauters;Sunglasses;Sortie;103
+21/12/2024;17:23:18;Mathis Wauters;;Entree;103
 21/12/2024;14:58:24;Valentin Hervouet;;Entree;204
 21/12/2024;17:02:25;Valentin Hervouet;;Sortie;204
+21/12/2024;17:10:24;Valentin Hervouet;;Entree;204
 21/12/2024;14:58:28;Victor Billat;;Entree;306
 21/12/2024;15:15:00;Victor Billat;;Sortie;306
+21/12/2024;15:38:00;Victor Billat;;Entree;306
 22/12/2024;14:58:32;Edwin Treny;Kitchen knife;Entree;210
 22/12/2024;16:22:45;Edwin Treny;;Sortie;210
+22/12/2024;16:56:45;Edwin Treny;;Entree;210
 23/12/2024;11:23:11;Samuel Jarjanette;Hat;Entree;5
 23/12/2024;12:38:11;Samuel Jarjanette;shorts;Sortie;5
+23/12/2024;14:27:11;Samuel Jarjanette;Hat;Entree;5
 24/12/2024;03:45:17;Frank Tene;;Entree;204
 24/12/2024;16:07:54;Frank Tene;;Sortie;204
+24/12/2024;16:34:17;Frank Tene;;Entree;204
+24/12/2024;17:02:17;Frank Tene;;Entree;204
 26/12/2024;18:15:23;Lea Laborde;Skirt;Entree;101
-26/12/2024;07:28:23;Frank Tene;;Sortie;104
 26/12/2024;21:44:38;Lea Laborde;;Sortie;101
+26/12/2024;21:47:23;Lea Laborde;Skirt;Entree;101
 26/12/2024;04:03:50;Edwin Treny;;Entree;1
 26/12/2024;08:41:14;Edwin Treny;;Sortie;1
-31/12/2024;19:49:02;Inconnu;Shotgun;Entree;101
+26/12/2024;05:12:50;Edwin Treny;;Entree;1
+04/01/2024;19:49:02;Inconnu;Shotgun;Entree;101
 02/01/2025;03:52:43;Samuel Jarjanette;;Entree;101
 02/01/2025;07:34:11;Samuel Jarjanette;;Sortie;101
-04/01/2025;09:12:07;Inconnu;;entree;101
-04/01/2025;09:31:56;Inconnu;Sunglasses;Sortie;101
+02/01/2025;07:52:43;Samuel Jarjanette;;Entree;101
+04/01/2025;19:53:07;Inconnu;;Sortie;101
+04/01/2025;19:56:56;Inconnu;Sunglasses;Entree;101
 05/01/2025;04:26:33;Edwin Treny;;Entree;101
 05/01/2025;01:15:35;Frank Tene;;Entree;101
 05/01/2025;13:10:00;Edwin Treny;;Sortie;101
+05/01/2025;14:26:33;Edwin Treny;;Entree;101
 05/01/2025;06:12:38;Inconnu;;Entree;101
 05/01/2025;11:53:36;Inconnu;;Sortie;101
-05/01/2025;05:14:30;Samuel Jarjanette;;Entree;101
+05/01/2025;12:00:36;Inconnu;;Entree;101
+05/01/2025;05:14:30;Samuel Jarjanette;;Entree;104
 05/01/2025;20:18:57;Frank Tene;Helmet;Sortie;101
+05/01/2025;21:15:35;Frank Tene;;Entree;101
 05/01/2025;07:21:01;Samuel Jarjanette;;Sortie;104
+05/01/2025;08:14:30;Samuel Jarjanette;;Entree;104
 15/01/2025;12:12:12;Theophile Mariotte;handgun;Entree;104
 15/01/2025;14:02:07;Theophile Mariotte;;Sortie;104
+15/01/2025;12:15:12;Theophile Mariotte;handgun;Entree;104
 18/01/2025;19:54:55;Pierre Martin;;Entree;104
 18/01/2025;20:05:13;Pierre Martin;;Sortie;104
-20/01/2025;16:59:04;Inconnu;;Entree;104
-20/01/2025;23:24:31;Inconnu;;Sortie;104
-21/01/2025;09:43:15;Frank Tene;;Entree;104
-21/01/2025;21:34:21;Frank Tene;;Sortie;104
-25/01/2025;08:49:58;Inconnu;handgun;Entree;104
-25/01/2025;13:28:11;Inconnu;;Sortie;104
-27/01/2025;00:44:18;Samuel Jarjanette;;Entree;104
-27/01/2025;03:07:35;Samuel Jarjanette;;Sortie;104
-27/01/2025;15:54:30;Inconnu;;Entree;207
-27/01/2025;18:14:32;Inconnu ;;Sortie;207
-30/01/2025;06:14:57;Camille Raad;Helmet;Entree;207
-30/01/2025;20:34:55;Camille Raad;Helmet;Sortie;207
-01/02/2025;17:45:51;Vincent Verlaan;;Entree;207
-01/02/2025;18:55:39;Vincent Verlaan;;Sortie;207
-03/02/2025;05:18:52;Edwin Treny;;Entree;207
-03/02/2025;14:05:29;Edwin Treny;;Sortie;207
-05/02/2025;04:43:47;Inconnu;;Entree;207
-05/02/2025;09:17:10;Inconnu;;Sortie;207
-07/02/2025;20:39:03;Antoine Lavenseau;Knife;Entree;207
-07/02/2025;22:17:01;Antoine Lavenseau;Knife;Sortie;207
-08/02/2025;06:33:13;Samuel Jarjanette;;Entree;105
-08/02/2025;22:45:51;Samuel Jarjanette;;Sortie;105
-10/02/2025;01:19:52;Mathis Wauters;;Entree;105
-10/02/2025;04:39:03;Mathis Wauters;;Sortie;105
-12/02/2025;11:45:14;Frank Tene;;Entree;105
-12/02/2025;14:51:49;Frank Tene;;Sortie;105
-15/02/2025;19:39:19;Clea Flatres;Handgun;Entree;105
-15/02/2025;21:49:52;Clea Flatres;Handgun;Sortie;105
-17/02/2025;20:32:09;Samuel Jarjanette;Helmet;Entree;105
-17/02/2025;11:32:36;Edwin Treny;;Entree;105
-17/02/2025;23:55:11;Samuel Jarjanette;;Sortie;105
-17/02/2025;22:54:45;Edwin Treny;;Sortie;107
-21/02/2025;10:48:03;Yan Yanglois;;Entree;107
-21/02/2025;18:39:55;Yan Yanglois;Kitchen knife;Sortie;107
-23/02/2025;00:44:04;Frank Tene;;Entree;107
-23/02/2025;17:07:40;Frank Tene;;Sortie;107
-26/02/2025;04:33:00;Mathis Wauters;;Entree;107
-26/02/2025;09:17:34;Mathis Wauters;;Sortie;107
-26/02/2025;19:11:40;Victor Billat;;Entree;107
-26/02/2025;22:48:01;Victor Billat;;Sortie;107
-02/03/2025;09:27:00;Edwin Treny;;Entree;107
-02/03/2025;16:58:10;Edwin Treny;;Sortie;107
+18/01/2025;20:31:55;Pierre Martin;;Entree;10415/01/2025;11:43:19;Mathis_Wauters;Aucun;Entrée;100
+15/01/2025;11:43:20;Victor_Billat;Aucun;Entrée;100
+15/01/2025;11:43:20;Mathis_Wauters;Aucun;Entrée;100
+15/01/2025;11:44:30;Mathis_Wauters;Aucun;Entrée;100
+15/01/2025;11:47:25;Mathis_Wauters;Aucun;Entrée;100
