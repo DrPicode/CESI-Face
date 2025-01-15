@@ -133,15 +133,15 @@ class FaceObjectRecognitionApp:
 
         # Objets surveillés
         self.OBJETS_SURVEILLES = {
-            'Sunglasses': 505,
-            'Hat': 243,
-            'Shorts': 456,
-            'Skirt': 463,
-            'Miniskirt': 334,
-            'Helmet': 248,
-            'Kitchen Knife': 292,
-            'Shotgun': 457,
-            'Handgun': 238
+            'Lunettes de soleil': 505,
+            'Chapeau': 243,
+            'Short': 456,
+            'Jupe': 463,
+            'Minijupe': 334,
+            'Casque': 248,
+            'Couteau de cuisine': 292,
+            'Fusil': 457,
+            'Pistolet': 238
         }
 
         # Style
