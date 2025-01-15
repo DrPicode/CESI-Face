@@ -1,31 +1,39 @@
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-from deepface import DeepFace
-import keras
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.applications import DenseNet201
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from sklearn.model_selection import train_test_split
-
-import numpy as np
-import os
-import cv2
+# Bibliothèques standard Python
 import csv
-import tensorflow as tf
-import pickle
-import random
-from datetime import datetime
-from ultralytics import YOLO
-import logging
-import sys
-import json
 import hashlib
-import textwrap
+import json
+import logging
+import os
+import pickle
 import queue
+import random
+import sys
+import textwrap
 import threading
 import time
+from datetime import datetime
+
+# Interface graphique
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
+# Traitement d'images et Computer Vision
+import cv2
+from deepface import DeepFace
+from ultralytics import YOLO
+
+# Calcul scientifique et Machine Learning
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+# TensorFlow et Keras
+import tensorflow as tf
+import keras
+from tensorflow.keras.applications import DenseNet201
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.utils import to_categorical
 
 
 class LoginWindow:
@@ -245,7 +253,7 @@ class FaceObjectRecognitionApp:
     def capture_face(self, prenom, nom):
         """Capture les images du visage pour l'enregistrement"""
         # Créer le dossier pour enregistrer les images
-        folder_name = f"dataset(test)/{prenom.capitalize()} {nom.capitalize()}"
+        folder_name = f"dataset/{prenom.capitalize()} {nom.capitalize()}"
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
 
@@ -422,13 +430,11 @@ class FaceObjectRecognitionApp:
         return True
 
     def start_recognition(self):
-        """Version modifiée avec double threading"""
+        """Version modifiée de la fonction de reconnaissance en temps réel pour ne détecter que le visage le plus proche"""
         try:
-            # Queues pour la reconnaissance faciale
+            # Initialisation des queues pour la communication inter-thread
             face_frame_queue = queue.Queue(maxsize=1)
             face_result_queue = queue.Queue()
-
-            # Queues pour la détection d'objets
             object_frame_queue = queue.Queue(maxsize=1)
             object_result_queue = queue.Queue()
 
@@ -485,12 +491,18 @@ class FaceObjectRecognitionApp:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
 
-                # Récupérer les résultats de reconnaissance faciale
-                while not face_result_queue.empty():
-                    current_face_results = face_result_queue.get()
+                # Trouver le plus grand visage (le plus proche de la caméra)
+                if len(faces) > 0:
+                    # Calculer l'aire de chaque visage et trouver le plus grand
+                    face_areas = [(x, y, w, h, w * h) for (x, y, w, h) in faces]
+                    largest_face = max(face_areas, key=lambda f: f[4])
+                    x, y, w, h = largest_face[:4]
 
-                # Traitement des visages détectés
-                for (x, y, w, h) in faces:
+                    # Récupérer les résultats de reconnaissance faciale
+                    while not face_result_queue.empty():
+                        current_face_results = face_result_queue.get()
+
+                    # Traitement du visage le plus grand
                     margin = 20
                     y1 = max(0, y - margin)
                     y2 = min(frame.shape[0], y + h + margin)
@@ -724,7 +736,7 @@ class FaceObjectRecognitionApp:
         """Fonction d'entraînement du modèle"""
         try:
             self.status_var.set("Chargement des données...")
-            db_path = "dataset(test)"
+            db_path = "dataset"
             embeddings = []
             labels = []
             label_map = {}
@@ -917,105 +929,6 @@ class FaceRecognitionThread(threading.Thread):
 
     def stop(self):
         self.running = False
-
-
-def start_recognition(self):
-    """Version modifiée de la fonction de reconnaissance en temps réel"""
-    try:
-        # Initialisation des queues pour la communication inter-thread
-        frame_queue = queue.Queue(maxsize=1)  # Limite à 1 pour ne garder que la frame la plus récente
-        result_queue = queue.Queue()
-
-        # Démarrage du thread de reconnaissance faciale
-        recognition_thread = FaceRecognitionThread(
-            frame_queue=frame_queue,
-            result_queue=result_queue,
-            face_model=self.face_model,
-            label_map=self.label_map
-        )
-        recognition_thread.start()
-
-        cap = cv2.VideoCapture(0)
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-
-        current_results = {}  # Pour stocker les résultats de reconnaissance les plus récents
-
-        while self.is_recognition_running:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Détection d'objets (peut aussi être déplacé dans un thread séparé si nécessaire)
-            detections = self.detect_objects(frame)
-            objets_interdits = []
-
-            for detection in detections:
-                if detection['objet'] in self.OBJETS_SURVEILLES:
-                    objets_interdits.append(detection['objet'])
-                    x1, y1, x2, y2 = detection['coords']
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    text = f"{detection['objet']} ({detection['confiance']:.2f})"
-                    cv2.putText(frame, text, (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-            # Détection des visages
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
-
-            # Récupérer les résultats de reconnaissance disponibles
-            while not result_queue.empty():
-                result = result_queue.get()
-                current_results = result  # Mise à jour des résultats actuels
-
-            # Traitement des visages détectés
-            for (x, y, w, h) in faces:
-                margin = 20
-                y1 = max(0, y - margin)
-                y2 = min(frame.shape[0], y + h + margin)
-                x1 = max(0, x - margin)
-                x2 = min(frame.shape[1], x + w + margin)
-                face_img = frame[y1:y2, x1:x2]
-
-                # Envoyer l'image du visage pour traitement
-                try:
-                    frame_queue.put(face_img, block=False)  # Non-bloquant
-                except queue.Full:
-                    pass  # Ignorer si la queue est pleine
-
-                # Affichage des résultats de reconnaissance
-                if current_results:
-                    predicted_name = current_results['name']
-                    confidence = current_results['confidence']
-                    confidence = random.uniform(0.75, 0.95)
-
-                    if predicted_name == "Inconnu":
-                        color = (0, 0, 255)
-                        text = predicted_name
-                    else:
-                        color = (0, int(255 * confidence), 0)
-                        text = f"{predicted_name} ({confidence:.2f})"
-                        self.log_detection(predicted_name, objets_interdits)
-
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                    cv2.putText(frame, text, (x, y - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-            cv2.imshow('Système de reconnaissance', frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        # Nettoyage
-        recognition_thread.stop()
-        recognition_thread.join()
-        cap.release()
-        cv2.destroyAllWindows()
-
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Erreur pendant la reconnaissance: {str(e)}")
-        self.status_var.set("Erreur pendant la reconnaissance")
-    finally:
-        self.is_recognition_running = False
 
 if __name__ == "__main__":
     login = LoginWindow()
