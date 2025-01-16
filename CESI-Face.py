@@ -253,7 +253,7 @@ class FaceObjectRecognitionApp:
     def capture_face(self, prenom, nom):
         """Capture les images du visage pour l'enregistrement"""
         # Créer le dossier pour enregistrer les images
-        folder_name = f"dataset/{prenom.capitalize()} {nom.capitalize()}"
+        folder_name = f"dataset/{prenom.capitalize()}_{nom.capitalize()}"
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
 
