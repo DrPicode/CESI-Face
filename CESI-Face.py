@@ -54,12 +54,12 @@ class LoginWindow:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Password field
-        ttk.Label(main_frame, text="Mot de passe:").grid(row=0, column=0, pady=10)
+        ttk.Label(main_frame, text="Mot de passe :").grid(row=0, column=0, pady=10)
         password_entry = ttk.Entry(main_frame, textvariable=self.password_var, show="*")
         password_entry.grid(row=0, column=1, pady=10)
 
         # Action choice (Entrée/Sortie)
-        ttk.Label(main_frame, text="Action:").grid(row=1, column=0, pady=10)
+        ttk.Label(main_frame, text="Mode :").grid(row=1, column=0, pady=10)
         action_frame = ttk.Frame(main_frame)
         action_frame.grid(row=1, column=1, pady=10)
 
@@ -69,7 +69,7 @@ class LoginWindow:
                        value="Sortie").pack(side=tk.LEFT, padx=5)
 
         # Salle selection
-        ttk.Label(main_frame, text="Numéro de salle:").grid(row=2, column=0, pady=10)
+        ttk.Label(main_frame, text="Numéro de salle :").grid(row=2, column=0, pady=10)
         salles = [str(num) for num in range(100, 111)]  # Crée une liste de "100" à "110"
         salle_combobox = ttk.Combobox(main_frame, textvariable=self.salle_var,
                                      values=salles, state="readonly", width=17)
@@ -384,7 +384,7 @@ class FaceObjectRecognitionApp:
                     if cls_id == id_classe:
                         x1, y1, x2, y2 = box.xyxy[0]
                         confidence = float(box.conf[0])
-                        if confidence > 0.4:
+                        if confidence > 0.1:
                             detections.append({
                                 'objet': nom_objet,
                                 'confiance': confidence,
@@ -399,7 +399,7 @@ class FaceObjectRecognitionApp:
         current_time = datetime.now()
         date = current_time.strftime('%d/%m/%Y')
         heure = current_time.strftime('%H:%M:%S')
-        objets_str = "|".join(objets_interdits) if objets_interdits else "Aucun"
+        objets_str = "|".join(objets_interdits) if objets_interdits else ""
 
         # Vérifier la dernière action de cette personne
         last_action = None
@@ -482,7 +482,7 @@ class FaceObjectRecognitionApp:
                     objets_interdits.append(detection['objet'])
                     x1, y1, x2, y2 = detection['coords']
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    text = f"{detection['objet']} ({detection['confiance']:.2f})"
+                    text = f"{detection['objet']}"
                     cv2.putText(frame, text, (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
@@ -622,7 +622,7 @@ class FaceObjectRecognitionApp:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Rouge
 
                 # Ajouter le texte de l'objet interdit en rouge
-                text = f"{detection['objet']} ({detection['confiance']:.2f})"
+                text = f"{detection['objet']}"
                 cv2.putText(frame, text, (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
